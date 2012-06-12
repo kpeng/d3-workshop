@@ -61,5 +61,44 @@ $(function() {
         .attr('text-anchor', 'end')
         .attr('y', height - 24)
         .attr('x', width)
-        .text('Yo dawg');
+        .text('1800');
+
+    // Load the data.
+    d3.json('nations.json', function(nations) {
+        // Add a dot per nation. Initialize the data at 1800, and set the colors.
+        var dot = svg.append('g')
+            .attr('class', 'dots')
+            .selectAll('.dot')
+                .data(extractFirstDataPoint())
+            .enter().append('circle')
+                .attr('class', 'dot')
+                .style('fill', function(d) { return color_scale(color(d)); })
+                .call(position)
+                .sort(order);
+
+        // Positions the dots based on data.
+        function position(dot) {
+            dot.attr('cx', function(d) { return x_scale(x(d)); })
+               .attr('cy', function(d) { return y_scale(y(d)); })
+               .attr('r', function(d) { return radius_scale(radius(d)); });
+        }
+
+        // Defines a sort order so that the smallest dots are drawn on top.
+        function order(a, b) {
+            return radius(b) - radius(a);
+        }
+
+        // Extracts the first data point in the data set for each nation
+        function extractFirstDataPoint() {
+            return nations.map(function(d) {
+                return {
+                    name: d.name,
+                    region: d.region,
+                    income: d.income[0][1],
+                    population: d.population[0][1],
+                    lifeExpectancy: d.lifeExpectancy[0][1]
+                };
+            });
+        }
+    });
 });
