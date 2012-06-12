@@ -217,7 +217,7 @@ d3.json('resources/data/nations.json', function(nations) {
 
   // Add a dot per nation. Initialize the data at 1800, and set the colors.
   var dot = svg.append('g')
-      .attr('class', 'dots')
+    .attr('class', 'dots')
     .selectAll('.dot')
       .data(interpolateData(1800))
     .enter().append('circle')
@@ -228,19 +228,19 @@ d3.json('resources/data/nations.json', function(nations) {
 
   // Add a title.
   dot.append('title')
-      .text(function(d) { return d.name; });
+    .text(function(d) { return d.name; });
 
   // Start a transition that interpolates the data based on year.
   svg.transition()
-      .duration(20000)
-      .ease('linear')
-      .tween('year', tweenYear);
+    .duration(20000)
+    .ease('linear')
+    .tween('year', tweenYear);
 
   // Positions the dots based on data.
   function position(dot) {
-    dot .attr('cx', function(d) { return x_scale(x(d)); })
-        .attr('cy', function(d) { return y_scale(y(d)); })
-        .attr('r', function(d) { return radius_scale(radius(d)); });
+    dot.attr('cx', function(d) { return x_scale(x(d)); })
+      .attr('cy', function(d) { return y_scale(y(d)); })
+      .attr('r', function(d) { return radius_scale(radius(d)); });
   }
 
   // Defines a sort order so that the smallest dots are drawn on top.
@@ -751,6 +751,223 @@ redraw();</pre>
           <li>CSS: <a href='http://www.w3.org/TR/selectors/'>Selectors
           Spec</a></li>
         </ul>
+      </article>
+
+      <article>
+        <h3>Building Gapminder from scratch: The Wealth & Health of Nations</h3>
+        <p>For those of you who want to follow along:</p>
+        <pre><span class='nocode'>$ git clone git://github.com/kpeng/d3-workshop.git
+$ git checkout nations-v0.0.1</span></pre>
+        <p>OK, so where do we begin?</p>
+        <footer class='source'>nations-v0.0.1</footer>
+      </article>
+
+      <article class='smaller'>
+        <h3>What kind of data are we working with?</h3>
+        <pre><span class='nocode'>[{
+  "name": "Angola",
+  "region": "Sub-Saharan Africa",
+  "income": [[1800, 359.93], [1820, 359.93], ... ],
+  "population": [[1800, 1567028], [1820,1567028], ... ],
+  "lifeExpectancy": [[1800, 26.98], [1940, 26.98], ... ]
+}, {
+  "name": "Benin",
+  "region": "Sub-Saharan Africa",
+  "income": [[1800, 553.72], [1820, 553.72], ... ],
+  "population": [[1800, 636559], [1820, 636559], ... ],
+  "lifeExpectancy": [[1800, 31], [1944, 31], ... ]
+}, ... ]</span></pre>
+        <ul>
+          <li>4 dimensions of data: income, population, life expectancy, region.
+          How are we mapping these dimensions to attributes in our visualization?
+          Specifically, how is the data-join going to be handled?
+          </li>
+          <li>Data is sparse in places, do we have to interpolate?</li>
+        </ul>
+        <footer class='source'>nations-v0.0.1</footer>
+      </article>
+
+      <article class='smaller'>
+        <h3>Define the parameters of our data</h3>
+        <footer class='source'>nations-v0.0.2</footer>
+        <pre>function x(d) { return d.income; }
+function y(d) { return d.lifeExpectancy; }
+function radius(d) { return d.population; }
+function color(d) { return d.region; }
+function key(d) { return d.name; }
+
+// Chart dimensions.
+var margin = { top: 19.5, right: 19.5, bottom: 19.5, left: 39.5 },
+    width = 960 - margin.right,
+    height = 540 - margin.top - margin.bottom;
+
+// Various scales. These domains make assumptions of data, naturally.
+var x_scale = d3.scale.log().domain([300, 1e5]).range([0, width]),
+    y_scale = d3.scale.linear().domain([10, 85]).range([height, 0]),
+    radius_scale = d3.scale.sqrt().domain([0, 5e8]).range([0, 40]),
+    color_scale = d3.scale.category10();
+
+// Create the SVG container and set the origin.
+var svg = d3.select('#nations').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+  .append('g')
+    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Now create the axes that will bound our visualization</h3>
+        <footer class='source'>nations-v0.0.2</footer>
+        <pre>// The x & y axes.
+var x_axis = d3.svg.axis().orient('bottom').scale(x_scale)
+                          .ticks(12, d3.format(',d')),
+    y_axis = d3.svg.axis().scale(y_scale).orient('left');
+
+// Add the x-axis.
+svg.append('g')
+    .attr('class', 'x axis')
+    .attr('transform', 'translate(0,' + height + ')')
+    .call(x_axis);
+
+// Add the y-axis.
+svg.append('g')
+    .attr('class', 'y axis')
+    .call(y_axis);</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Finally, as a nice touch, we'll add some labels</h3>
+        <footer class='source'>nations-v0.0.3</footer>
+        <pre>// Add an x-axis label.
+svg.append('text')
+    .attr('class', 'x label')
+    .attr('text-anchor', 'end')
+    .attr('x', width)
+    .attr('y', height - 6)
+    .text('income per capita, inflation-adjusted (dollars)');
+
+// Add a y-axis label.
+svg.append('text')
+    .attr('class', 'y label')
+    .attr('text-anchor', 'end')
+    .attr('y', 6)
+    .attr('dy', '.75em')
+    .attr('transform', 'rotate(-90)')
+    .text('life expectancy (years)');</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>... and a giant label for the year</h3>
+        <footer class='source'>nations-v0.1.0</footer>
+        <pre>// Add the year label; the value is set on transition.
+var label = svg.append('text')
+    .attr('class', 'year label')
+    .attr('text-anchor', 'end')
+    .attr('y', height - 24)
+    .attr('x', width)
+    .text('Yo dawg');</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Loading the dataset</h3>
+        <footer class='source'>nations-v0.1.1</footer>
+        <pre>d3.json('nations.json', function(nations) {
+    // Add a dot per nation. Initialize the data at 1800, and set the colors.
+    var dot = svg.append('g')
+        .attr('class', 'dots')
+        .selectAll('.dot')
+            .data(extractFirstDataPoint())
+        .enter().append('circle')
+          .attr('class', 'dot')
+          .style('fill', function(d) { return color_scale(color(d)); })
+          .call(position)
+          .sort(order);
+
+    // Positions the dots based on data.
+    function position(dot) {
+        dot.attr('cx', function(d) { return x_scale(x(d)); })
+           .attr('cy', function(d) { return y_scale(y(d)); })
+           .attr('r', function(d) { return radius_scale(radius(d)); });
+    }
+
+    // Defines a sort order so that the smallest dots are drawn on top.
+    function order(a, b) {
+        return radius(b) - radius(a);
+    }
+
+    // Continued on next slide...</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Loading the dataset (continued)</h3>
+        <footer class='source'>nations-v0.1.1</footer>
+        <pre>    // Extracts the first data point in the data set for each nation
+    function extractFirstDataPoint() {
+        return nations.map(function(d) {
+            return {
+                name: d.name,
+                region: d.region,
+                income: d.income[0][1],
+                population: d.population[0][1],
+                lifeExpectancy: d.lifeExpectancy[0][1]
+            };
+        });
+    }
+});</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Properly interpolating data</h3>
+        <footer class='source'>nations-v0.2.0</footer>
+        <pre>    // A bisector since many nation's data is sparsely-defined.
+    var bisect = d3.bisector(function(d) { return d[0]; });
+
+    // Interpolates the dataset for the given (fractional) year.
+    function interpolateData(year) {
+        return nations.map(function(d) {
+            return {
+              name: d.name,
+              region: d.region,
+              income: interpolateValues(d.income, year),
+              population: interpolateValues(d.population, year),
+              lifeExpectancy: interpolateValues(d.lifeExpectancy, year)
+            };
+        });
+    }
+
+    // Finds (and possibly interpolates) the value for the specified year.
+    function interpolateValues(values, year) {
+        var i = bisect.left(values, year, 0, values.length - 1), a = values[i];
+        if (i > 0) {
+            var b = values[i - 1], t = (year - a[0]) / (b[0] - a[0]);
+            return a[1] * (1 - t) + b[1] * t;
+        }
+        return a[1];
+    }</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Finally, we add the transitions</h3>
+        <footer class='source'>nations-v1.0.0</footer>
+        <pre>    // Start a transition that interpolates the data based on year.
+    svg.transition()
+        .duration(30000)
+        .ease('linear')
+        .tween('year', tweenYear);
+
+    // Tweens the entire chart by first tweening the year, and then the data.
+    // For the interpolated data, the dots and label are redrawn.
+    function tweenYear() {
+        var year = d3.interpolateNumber(1800, 2009);
+        return function(t) { displayYear(year(t)); };
+    }
+
+    // Updates the display to show the specified year.
+    function displayYear(year) {
+        console.info(year);
+        dot.data(interpolateData(year), key).call(position).sort(order);
+        label.text(Math.round(year));
+    }</pre>
       </article>
     </section>
   </body>
