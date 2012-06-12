@@ -37,4 +37,21 @@ $(function() {
     svg.append('g')
         .attr('class', 'y axis')
         .call(y_axis);
+
+    // Add an x-axis label.
+    svg.append('text')
+        .attr('class', 'x label')
+        .attr('text-anchor', 'end')
+        .attr('x', width)
+        .attr('y', height - 6)
+        .text('income per capita, inflation-adjusted (dollars)');
+
+    // Add a y-axis label.
+    svg.append('text')
+        .attr('class', 'y label')
+        .attr('text-anchor', 'end')
+        .attr('y', 6)
+        .attr('dy', '.75em')
+        .attr('transform', 'rotate(-90)')
+        .text('life expectancy (years)');
 });
