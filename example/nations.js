@@ -72,12 +72,16 @@ $(function() {
         var dot = svg.append('g')
             .attr('class', 'dots')
             .selectAll('.dot')
-                .data(interpolateData(1800))
+                .data(interpolateData(1800), key)
             .enter().append('circle')
                 .attr('class', 'dot')
                 .style('fill', function(d) { return color_scale(color(d)); })
                 .call(position)
                 .sort(order);
+
+        // Add a title.
+        dot.append('title')
+            .text(function(d) { return d.name; });
 
         // Positions the dots based on data.
         function position(dot) {
@@ -114,6 +118,25 @@ $(function() {
                 return a[1] * (1 - t) + b[1] * t;
             }
             return a[1];
+        }
+
+        // Start a transition that interpolates the data based on year.
+        svg.transition()
+            .duration(30000)
+            .ease('linear')
+            .tween('year', tweenYear);
+
+        // Tweens the entire chart by first tweening the year, and then the data.
+        // For the interpolated data, the dots and label are redrawn.
+        function tweenYear() {
+            var year = d3.interpolateNumber(1800, 2009);
+            return function(t) { displayYear(year(t)); };
+        }
+
+        // Updates the display to show the specified year.
+        function displayYear(year) {
+            dot.data(interpolateData(year), key).call(position).sort(order);
+            label.text(Math.round(year));
         }
     });
 });
