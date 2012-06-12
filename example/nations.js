@@ -54,4 +54,12 @@ $(function() {
         .attr('dy', '.75em')
         .attr('transform', 'rotate(-90)')
         .text('life expectancy (years)');
+
+    // Add the year label; the value is set on transition.
+    var label = svg.append('text')
+        .attr('class', 'year label')
+        .attr('text-anchor', 'end')
+        .attr('y', height - 24)
+        .attr('x', width)
+        .text('Yo dawg');
 });
