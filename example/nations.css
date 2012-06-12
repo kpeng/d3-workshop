@@ -1,0 +1,38 @@
+#nations {
+  margin-left: -40px;
+  width: 960px;
+  height: 546px;
+}
+
+text {
+  font: 10px sans-serif;
+}
+
+.dot {
+  stroke: #000;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.label {
+  fill: #777;
+}
+
+.year.label {
+  font: 500 196px "Helvetica Neue";
+  fill: #DDD;
+}
+
+.year.label.active {
+  fill: #AAA;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+  cursor: ew-resize;
+}
