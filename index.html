@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Introduction to d3.js</title>
+    <meta charset='utf-8'>
+    <script type='text/javascript' src='lib/d3.v2.min.js'></script>
+    <script type='text/javascript' src='lib/jquery.min.js'></script>
+    <script type='text/javascript' src='lib/slides.js'></script>
+
+    <link rel='stylesheet' href='resources/css/colorbrewer.css'>
+    <link rel='stylesheet' href='resources/css/d3.workshop.css'>
+  </head>
+
+  <body style='display: none'>
+    <section class='slides layout-regular'>
+      <article>
+        <h1>
+          Introduction to d3.js and
+          <br>
+          Data-Driven Visualizations
+        </h1>
+        <p>
+          Kenny Peng
+        </p>
+      </article>
+
+      <article>
+        <h3>What is d3.js and why should I use it?</h3>
+        <ul>
+          <li>JavaScript library for manipulation of data-driven
+          visualizations</li>
+          <li>Leverages web standards: HTML5, CSS3, SVG</li>
+          <li>Feature set is simple and focuses on transformations on data rather
+          than how to represent data</li>
+          <li>There isn't a set of new vocabulary or marks to learn, and you have
+          direct access to browser capabilities</li>
+        </ul>
+      </article>
+
+      <article class='smaller'>
+        <h3>U.S. Unemployment Rates (by County), 2008</h3>
+        <div id='unemployment'></div>
+        <p>Source: <a href="http://mbostock.github.com/d3/talk/20111018/choropleth.html">Mike Bostock</a>.</p>
+        <style>
+#counties path {
+  stroke: #fff;
+  stroke-width: .25px;
+}
+
+#states path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+        </style>
+        <script>
+var path = d3.geo.path()
+    .projection(d3.geo.albersUsa()
+    .scale(860)
+    .translate([400, 240]));
+
+var svg = d3.select('#unemployment').append('svg:svg')
+    .attr('class', 'Blues')
+    .attr('width', 760)
+    .attr('height', 480);
+
+var counties = svg.append('svg:g')
+    .attr('id', 'counties');
+
+var states = svg.append('svg:g')
+    .attr('id', 'states');
+
+d3.json('resources/data/unemployment.json', function(data) {
+  var pad = d3.format('05d'),
+      quantize = d3.scale.quantile().domain([0, 15]).range(d3.range(9));
+
+  d3.json('resources/data/us-counties.json', function(json) {
+    counties.selectAll('path')
+        .data(json.features)
+      .enter().append('svg:path')
+        .attr('class', function(d) { return 'q' + quantize(data[pad(d.id)]) + '-9'; })
+        .attr('d', path)
+      .append('svg:title')
+        .text(function(d) { return d.properties.name + ': ' + data[pad(d.id)] + '%'; });
+  });
+});
+
+d3.json('resources/data/us-states.json', function(json) {
+  states.selectAll('path')
+      .data(json.features)
+    .enter().append('svg:path')
+      .attr('d', path);
+});
+    </script>
+      </article>
+
+      <article class='smaller'>
+        <h3>The Wealth & Health of Nations</h3>
+          <div id='nations'></div>
+          <p>Source: <a href="https://github.com/RandomEtc/mind-gapper-js">Tom Carden</a>,
+          <a href="http://bost.ocks.org/mike/nations/">Mike Bostock</a>.</p>
+          <p>This is a recreation in <a href="http://d3js.org/">D3</a> of
+          Gapminder’s <a href="http://gapminder.org/world/">Wealth & Health of
+          Nations</a>, made famous by Hans Rosling’s memorable <a href="http://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen.html">2006 TED talk</a>.
+          It shows the dynamic fluctuation in per-capita income (<i>x</i>), life
+          expectancy (<i>y</i>) and population (radius) of 180 nations over the
+          last 209 years.</p>
+          <style>
+#nations {
+  margin-left: -40px;
+  height: 406px;
+}
+
+text {
+  font: 10px sans-serif;
+}
+
+.dot {
+  stroke: #000;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.label {
+  fill: #777;
+}
+
+.year.label {
+  font: 500 196px "Helvetica Neue";
+  fill: #DDD;
+}
+
+.year.label.active {
+  fill: #AAA;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+  cursor: ew-resize;
+}
+          </style>
+          <script>
+// Various accessors that specify the four dimensions of data to visualize.
+function x(d) { return d.income; }
+function y(d) { return d.lifeExpectancy; }
+function radius(d) { return d.population; }
+function color(d) { return d.region; }
+function key(d) { return d.name; }
+
+// Chart dimensions.
+var margin = { top: 19.5, right: 19.5, bottom: 19.5, left: 39.5 },
+    width = 760 - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+// Various scales. These domains make assumptions of data, naturally.
+var x_scale = d3.scale.log().domain([300, 1e5]).range([0, width]),
+    y_scale = d3.scale.linear().domain([10, 85]).range([height, 0]),
+    radius_scale = d3.scale.sqrt().domain([0, 5e8]).range([0, 40]),
+    color_scale = d3.scale.category10();
+
+// The x & y axes.
+var x_axis = d3.svg.axis().orient('bottom').scale(x_scale).ticks(12, d3.format(',d')),
+    y_axis = d3.svg.axis().scale(y_scale).orient('left');
+
+// Create the SVG container and set the origin.
+var svg = d3.select('#nations').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+  .append('g')
+    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+// Add the x-axis.
+svg.append('g')
+    .attr('class', 'x axis')
+    .attr('transform', 'translate(0,' + height + ')')
+    .call(x_axis);
+
+// Add the y-axis.
+svg.append('g')
+    .attr('class', 'y axis')
+    .call(y_axis);
+
+// Add an x-axis label.
+svg.append('text')
+    .attr('class', 'x label')
+    .attr('text-anchor', 'end')
+    .attr('x', width)
+    .attr('y', height - 6)
+    .text('income per capita, inflation-adjusted (dollars)');
+
+// Add a y-axis label.
+svg.append('text')
+    .attr('class', 'y label')
+    .attr('text-anchor', 'end')
+    .attr('y', 6)
+    .attr('dy', '.75em')
+    .attr('transform', 'rotate(-90)')
+    .text('life expectancy (years)');
+
+// Add the year label; the value is set on transition.
+var label = svg.append('text')
+    .attr('class', 'year label')
+    .attr('text-anchor', 'end')
+    .attr('y', height - 24)
+    .attr('x', width);
+
+// Load the data.
+d3.json('resources/data/nations.json', function(nations) {
+  // A bisector since many nation's data is sparsely-defined.
+  var bisect = d3.bisector(function(d) { return d[0]; });
+
+  // Add a dot per nation. Initialize the data at 1800, and set the colors.
+  var dot = svg.append('g')
+      .attr('class', 'dots')
+    .selectAll('.dot')
+      .data(interpolateData(1800))
+    .enter().append('circle')
+      .attr('class', 'dot')
+      .style('fill', function(d) { return color_scale(color(d)); })
+      .call(position)
+      .sort(order);
+
+  // Add a title.
+  dot.append('title')
+      .text(function(d) { return d.name; });
+
+  // Start a transition that interpolates the data based on year.
+  svg.transition()
+      .duration(20000)
+      .ease('linear')
+      .tween('year', tweenYear);
+
+  // Positions the dots based on data.
+  function position(dot) {
+    dot .attr('cx', function(d) { return x_scale(x(d)); })
+        .attr('cy', function(d) { return y_scale(y(d)); })
+        .attr('r', function(d) { return radius_scale(radius(d)); });
+  }
+
+  // Defines a sort order so that the smallest dots are drawn on top.
+  function order(a, b) {
+    return radius(b) - radius(a);
+  }
+
+  // Tweens the entire chart by first tweening the year, and then the data.
+  // For the interpolated data, the dots and label are redrawn.
+  function tweenYear() {
+    var year = d3.interpolateNumber(1800, 2009);
+    return function(t) { displayYear(year(t)); };
+  }
+
+  // Updates the display to show the specified year.
+  function displayYear(year) {
+    dot.data(interpolateData(year), key).call(position).sort(order);
+    label.text(Math.round(year));
+  }
+
+  // Interpolates the dataset for the given (fractional) year.
+  function interpolateData(year) {
+    return nations.map(function(d) {
+      return {
+        name: d.name,
+        region: d.region,
+        income: interpolateValues(d.income, year),
+        population: interpolateValues(d.population, year),
+        lifeExpectancy: interpolateValues(d.lifeExpectancy, year)
+      };
+    });
+  }
+
+  // Finds (and possibly interpolates) the value for the specified year.
+  function interpolateValues(values, year) {
+    var i = bisect.left(values, year, 0, values.length - 1),
+        a = values[i];
+    if (i > 0) {
+      var b = values[i - 1],
+          t = (year - a[0]) / (b[0] - a[0]);
+      return a[1] * (1 - t) + b[1] * t;
+    }
+    return a[1];
+  }
+});
+
+</script>
+      </article>
+
+      <article>
+        <h3>
+          Setup
+        </h3>
+        <pre>&lt;!DOCTYPE html&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;utf-8&quot;&gt;
+  &lt;script type=&quot;text/javascript&quot; src=&quot;d3.v2.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script type=&quot;text/javascript&quot; src=&quot;jquery.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script type=&quot;text/javascript&quot; src=&quot;d3.workshop.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+  &lt;div id=&quot;visualization&quot;&gt;Hello World!&lt;/div&gt;
+&lt;/body&gt;</pre>
+        <div id='visualization1'>Hello World!</div>
+      </article>
+
+      <article class='smaller'>
+        <h3>Simple example: a bar chart</h3>
+        <pre>var data = [5, 2, 9, 7, 6, 1];
+var width = 778, height = 480, chunk = width / data.length;
+
+var chart = d3.select('#visualization')
+  .append('svg')
+    .attr('class', 'chart')
+    .attr('width', width)
+    .attr('height', height)
+  .append('g')
+    .attr('transform', 'translate(10, 15)');
+
+var x = d3.scale.ordinal()
+  .domain(data)
+  .rangeBands([0, width]);
+
+var y = d3.scale.linear()
+  .domain([0, 10])
+  .rangeRound([0, height]);
+
+chart.selectAll('rect')
+  .data(data)
+  .enter().append('rect')
+    .attr('x', function(d, i) { return i * chunk; })
+    .attr('y', function(d) { return height - y(d); })
+    .attr('width', chunk)
+    .attr('height', y);</pre>
+      </article>
+
+      <article>
+        <h3>... and the results.</h3>
+        <div id='visualization2'></div>
+        <script>
+$(function() {
+  var data = [5, 2, 9, 7, 6, 1];
+  var width = 760, height = 480, chunk = width / data.length;
+
+  var chart = d3.select('#visualization2')
+    .append('svg')
+      .attr('class', 'chart')
+      .attr('width', width)
+      .attr('height', height)
+    .append('g')
+      .attr('transform', 'translate(10, 15)');
+
+  var x = d3.scale.ordinal()
+    .domain(data)
+    .rangeBands([0, width]);
+
+  var y = d3.scale.linear()
+    .domain([0, 10])
+    .range([0, height]);
+
+  chart.selectAll('rect')
+    .data(data)
+    .enter().append('rect')
+      .attr('x', x)
+      .attr('y', function(d) { return height - y(d); })
+      .attr('width', chunk)
+      .attr('height', y);
+});
+        </script>
+      </article>
+
+      <article>
+        <h3>So what is the code doing?</h3>
+        <div class='build'>
+          <pre>// Construct the SVG element (the &quot;canvas&quot;)
+var chart = d3.select('#visualization')
+  .append('svg')
+    .attr('class', 'chart')
+    .attr('width', width)
+    .attr('height', height)
+  .append('g')
+    .attr('transform', 'translate(10, 15)');</pre>
+          <pre>// This scale will carve up our horizontal space
+var x = d3.scale.ordinal()
+  .domain(data)
+  .rangeBands([0, width]);
+
+// This scale maps our values to heights
+var y = d3.scale.linear()
+  .domain([0, 10])
+  .range([0, height]);</pre>
+        </div>
+      </article>
+
+      <article>
+        <h3>So what is the code doing?</h3>
+        <div class='build'>
+          <pre>// Bind data and compute attributes for elements
+chart.selectAll('rect')
+  .data(data)
+  .enter().append('rect')
+    .attr('x', function(d, i) { return i * chunk; })
+    .attr('y', function(d) { return height - y(d); })
+    .attr('width', chunk)
+    .attr('height', y);</pre>
+          <ul>
+            <li>You write what you want to happen in a declarative way</li>
+            <li>Instead of creating rectangles, you map the set of rectangles to
+            your data and describe what the process for constructing the elements
+            is</li>
+            <li>This concept is called the <em>data-join</em></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class='smaller'>
+        <h3>Data-joins Explained</h3>
+        <svg class='joins' width='720' height='360'>
+          <g transform='translate(0,196)'>
+            <g transform='translate(270)'>
+              <circle style='fill: #3182BD;' r='150'></circle>
+              <text y='-160' style='font-weight: bold; ' dy='.20em'
+                    text-anchor='middle'>Data</text>
+              <text x='-30' dy='.35em' text-anchor='middle'>Enter</text>
+            </g>
+            <text x='360' dy='.35em' text-anchor='middle'>Update</text>
+            <g transform='translate(450)'>
+              <circle style='fill: #E6550D;' r='150'></circle>
+              <text y='-160' style='font-weight: bold; ' dy='.20em'
+                    text-anchor='middle'>Elements</text>
+              <text x='30' dy='.35em' text-anchor='middle'>Exit</text>
+            </g>
+          </g>
+        </svg>
+        <p>
+          The <code>data(data)</code> call binds the data to (SVG) elements, and
+          produces three virtual selections: <code>enter</code>, <code>
+          update</code>, and <code>exit</code>. <code>enter</code> contains
+          placeholders for any missing elements. <code>update</code> contains
+          existing elements, bound to data. Any remaining elements end up in
+          <code>exit</code> for removal.
+        </p>
+        <p>
+          Note: <code>enter</code> and <code>exit</code> have explicit selectors, but
+          <code>update</code> is implicit via the existing selection.
+        </p>
+      </article>
+
+      <article>
+        <h3>Adding some labels</h3>
+        <pre>// We do the same, except now we create SVG "text" elements
+chart.selectAll('text')
+  .data(data)
+  .enter().append('text')
+    .attr('x', function(d) { return x(d) + x.rangeBand() / 2; } )
+    .attr('y', function(d) { return height - y(d); })
+    .attr('dy', '-.35em')
+    .attr('text-anchor', 'middle')
+    // The text() function takes a function to render the data
+    .text(String);</pre>
+      </article>
+
+      <article>
+        <h3>... and what it looks like.</h3>
+        <div id='visualization3'></div>
+        <script>
+$(function() {
+  var data = [5, 2, 9, 7, 6, 1];
+  var width = 760, height = 480, chunk = width / data.length;
+
+  var chart = d3.select('#visualization3')
+    .append('svg')
+      .attr('class', 'chart')
+      .attr('width', width)
+      .attr('height', height)
+    .append('g')
+      .attr('transform', 'translate(10, 15)');
+
+  var x = d3.scale.ordinal()
+    .domain(data)
+    .rangeBands([0, width]);
+
+  var y = d3.scale.linear()
+    .domain([0, 10])
+    .range([0, height]);
+
+  chart.selectAll('rect')
+    .data(data)
+    .enter().append('rect')
+      .attr('x', x)
+      .attr('y', function(d) { return height - y(d); })
+      .attr('width', chunk)
+      .attr('height', y);
+
+  chart.selectAll('text')
+    .data(data)
+    .enter().append('text')
+      .attr('x', function(d) { return x(d) + x.rangeBand() / 2; } )
+      .attr('y', function(d) { return height - y(d); })
+      .attr('dy', '-.35em')
+      .attr('text-anchor', 'middle')
+      .text(String);
+});
+        </script>
+      </article>
+
+      <article>
+        <h2>But wait, there's more!</h2>
+      </article>
+
+      <article>
+        <h3>Dynamic Visualizations</h3>
+        <div id='visualization4'></div>
+        <script>
+$(function() {
+  var time = 0;
+  var data = [next(),
+              next(),
+              next(),
+              next(),
+              next(),
+              next()];
+
+  var width = 760, height = 480, chunk = width / data.length;
+
+  function next() {
+    return {
+      time: ++time,
+      value: Math.ceil(Math.random() * 10)
+    }
+  }
+
+  setInterval(function() {
+    data.shift();
+    data.push(next());
+    redraw();
+  }, 1500);
+
+  var chart = d3.select('#visualization4')
+    .append('svg')
+      .attr('class', 'chart')
+      .attr('width', width)
+      .attr('height', height + 40)
+    .append('g')
+      .attr('transform', 'translate(0, 40)');
+
+  var x = d3.scale.linear()
+    .domain([0, 1])
+    .range([0, chunk]);
+
+  var y = d3.scale.linear()
+    .domain([0, 10])
+    .rangeRound([0, height]);
+
+  redraw();
+
+  function redraw() {
+    var rect = chart.selectAll('rect')
+      .data(data, function(d) { return d.time; });
+
+    var labels = chart.selectAll('text')
+      .data(data, function(d) { return d.time; });
+
+    // Enter...
+    rect.enter()
+      .insert('rect', 'text')
+        .attr('x', function(d, i) { return x(i + 1) - .5; })
+        .attr('y', function(d) { return height - y(d.value) - .5; })
+        .attr('width', chunk)
+        .attr('height', function(d) { return y(d.value); })
+      .transition()
+        .duration(1000)
+        .attr('x', function(d, i) { return x(i) - .5; });
+
+    labels.enter()
+      .append('text')
+        .attr('x', function(d, i) { return x(i + 1.5) - .5; })
+        .attr('y', function(d) { return height - y(d.value) - .5; })
+        .attr('dy', '-.35em')
+        .attr('text-anchor', 'middle')
+        .text(function(d) { return d.value; })
+      .transition()
+        .duration(1000)
+        .attr('x', function(d, i) { return x(i + .5) - .5; });
+
+    // Update...
+    rect.transition()
+      .duration(1000)
+      .attr('x', function(d, i) { return x(i) - .5; });
+
+    labels.transition()
+      .duration(1000)
+      .attr('x', function(d, i) { return x(i + .5) - .5; });
+
+    // Exit...
+    rect.exit().transition()
+      .duration(1000)
+      .attr('x', function(d, i) { return x(i - 1) - .5; })
+      .remove();
+
+    labels.exit().transition()
+      .duration(1000)
+      .attr('x', function(d, i) { return x(i - .5) - .5; })
+      .remove();
+  }
+});
+        </script>
+      </article>
+
+      <article class='smaller'>
+        <h3>Breaking it down...</h3>
+        <pre>// Got lazy here, but I'm just generating some random data
+var time = 0;
+var data = [next(), next(), next(), next(), next(), next()];
+
+// Sizing parameters
+var width = 760, height = 480, chunk = width / data.length;
+
+// Generate random integers between 1 and 10, associated with monotonically
+// increasing time
+function next() {
+  return {
+    time: ++time,
+    value: Math.ceil(Math.random() * 10)
+  }
+}
+
+// Periodic function to remove the beginning data point, add a new point, and
+// redraw everything
+setInterval(function() {
+  data.shift();
+  data.push(next());
+
+  // This function rebinds the data, computes the "enter", "exit", and "update"
+  // selections and causes everything to redraw
+  redraw();
+}, 1500);</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Breaking it down...</h3>
+        <pre>var chart = d3.select('#visualization')
+  .append('svg')
+    .attr('class', 'chart')
+    .attr('width', width)
+    // So we have room for our labels
+    .attr('height', height + 40)
+  .append('g')
+    // So we have room for our labels, you can see that you can apply group-wide
+    // transformations on the SVG sets here
+    .attr('transform', 'translate(0, 40)');
+
+// This is a bit of a cheat, because we're assuming the time points are
+// "contiguous", i.e. there's no gaps
+var x = d3.scale.linear()
+  .domain([0, 1])
+  .range([0, chunk]);
+
+var y = d3.scale.linear()
+  .domain([0, 10])
+  .rangeRound([0, height]);
+
+// Calling this the first time will create the initial render... this function is
+// magical
+redraw();</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Breaking it down...</h3>
+        <pre>function redraw() {
+  // The second arguments here are specifications on how the data should be
+  // bound to elements
+  var rect = chart.selectAll('rect').data(data, function(d) { return d.time; });
+  var labels = chart.selectAll('text').data(data, function(d) { return d.time; });
+
+  // All these -.5 offsets are to address anti-aliasing artifacts, but I'm
+  // feeling pedantic
+
+  // Enter...
+  rect.enter().insert('rect', 'text')
+      .attr('x', function(d, i) { return x(i + 1) - .5; })
+      .attr('y', function(d) { return height - y(d.value) - .5; })
+      .attr('width', chunk)
+      .attr('height', function(d) { return y(d.value); })
+    .transition().duration(1000) // Transition should last 1 second
+      .attr('x', function(d, i) { return x(i) - .5; });
+
+  labels.enter().append('text')
+      .attr('x', function(d, i) { return x(i + 1.5) - .5; })
+      .attr('y', function(d) { return height - y(d.value) - .5; })
+      .attr('dy', '-.35em')
+      .attr('text-anchor', 'middle')
+      .text(function(d) { return d.value; })
+    .transition().duration(1000) // Transition should last 1 second
+      .attr('x', function(d, i) { return x(i + .5) - .5; });</pre>
+      </article>
+
+      <article class='smaller'>
+        <h3>Breaking it down...</h3>
+        <pre>  // Update...
+  rect.transition()
+    .duration(1000)
+    .attr('x', function(d, i) { return x(i) - .5; });
+
+  labels.transition()
+    .duration(1000)
+    .attr('x', function(d, i) { return x(i + .5) - .5; });
+
+  // Exit...
+  rect.exit().transition()
+    .duration(1000)
+    .attr('x', function(d, i) { return x(i - 1) - .5; })
+    .remove();
+
+  labels.exit().transition()
+    .duration(1000)
+    .attr('x', function(d, i) { return x(i - .5) - .5; })
+    .remove();
+}</pre>
+      </article>
+
+      <article>
+        <h3>d3.js Components</h3>
+        <ul>
+          <li>d3 (core)</li>
+          <li>d3.scale - Quantitative scales</li>
+          <li>d3.svg - SVG shapes, axes, and controls</li>
+          <li>d3.time - Time functions</li>
+          <li>d3.layout - Bundles, chords, trees, etc.</li>
+          <li>d3.geo - Geographic features and projections</li>
+          <li>d3.geom - Polygons, contours, and hull</li>
+          <li>d3.behavior - Zoom and drag</li>
+        </ul>
+      </article>
+
+      <article>
+        <h3>Further Reading and References</h3>
+        <ul>
+          <li>d3.js <a href='http://mbostock.github.com/d3/'>Home</a>,
+          <a href='https://github.com/mbostock/d3/wiki/API-Reference'>APIs</a></li>
+          <li><a href='http://bost.ocks.org/mike/join/'>Mike Bostock -
+          Thinking with Joins</a></li>
+          <li><a href='http://bost.ocks.org/mike/d3/workshop/'>Mike Bostock -
+          D3 Workshop</a></li>
+          <li>SVG: <a href='https://developer.mozilla.org/en/SVG'>MDN</a>,
+          <a href='http://www.w3.org/TR/SVG/'>W3C SVG Spec</a></li>
+          <li>CSS: <a href='http://www.w3.org/TR/selectors/'>Selectors
+          Spec</a></li>
+        </ul>
+      </article>
+    </section>
+  </body>
+</html>

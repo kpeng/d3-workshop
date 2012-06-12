@@ -1,0 +1,15 @@
+.chart rect {
+    stroke: white;
+    fill: steelblue;
+}
+
+svg.joins {
+    font-size: 24px;
+}
+
+circle {
+    fill: none;
+    fill-opacity: .2;
+    stroke: black;
+    stroke-width: 1.5px;
+}
