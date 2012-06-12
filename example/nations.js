@@ -65,11 +65,14 @@ $(function() {
 
     // Load the data.
     d3.json('nations.json', function(nations) {
+        // A bisector since many nation's data is sparsely-defined.
+        var bisect = d3.bisector(function(d) { return d[0]; });
+
         // Add a dot per nation. Initialize the data at 1800, and set the colors.
         var dot = svg.append('g')
             .attr('class', 'dots')
             .selectAll('.dot')
-                .data(extractFirstDataPoint())
+                .data(interpolateData(1800))
             .enter().append('circle')
                 .attr('class', 'dot')
                 .style('fill', function(d) { return color_scale(color(d)); })
@@ -88,17 +91,29 @@ $(function() {
             return radius(b) - radius(a);
         }
 
-        // Extracts the first data point in the data set for each nation
-        function extractFirstDataPoint() {
+        // Interpolates the dataset for the given (fractional) year.
+        function interpolateData(year) {
             return nations.map(function(d) {
                 return {
-                    name: d.name,
-                    region: d.region,
-                    income: d.income[0][1],
-                    population: d.population[0][1],
-                    lifeExpectancy: d.lifeExpectancy[0][1]
+                  name: d.name,
+                  region: d.region,
+                  income: interpolateValues(d.income, year),
+                  population: interpolateValues(d.population, year),
+                  lifeExpectancy: interpolateValues(d.lifeExpectancy, year)
                 };
             });
+        }
+
+        // Finds (and possibly interpolates) the value for the specified year.
+        function interpolateValues(values, year) {
+            var i = bisect.left(values, year, 0, values.length - 1),
+                a = values[i];
+            if (i > 0) {
+                var b = values[i - 1],
+                    t = (year - a[0]) / (b[0] - a[0]);
+                return a[1] * (1 - t) + b[1] * t;
+            }
+            return a[1];
         }
     });
 });
